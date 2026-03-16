@@ -1,6 +1,3 @@
-# EncryptionLeak
-Reference: A Pairing-Free Signature Scheme from
-Correlation Intractable Hash Function
-and Strong Diffie-Hellman Assumption
+# Encrypted Chat With OpenSSL
 
-Author: Benoît Chevallier-Mames
+A simple client interface that uses node.js for sending messages and chatting with full-end encryption
