@@ -1,3 +1,5 @@
-# Encrypted Chat With OpenSSL
+# Encrypted Chat 
 
-A simple client interface that uses node.js for sending messages and chatting with full-end encryption
+Will be updated soon
+
+Simple messaging client that encrypts messages using AES-GCM with a 256 bit key.
