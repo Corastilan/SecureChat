@@ -1,0 +1,5 @@
+cryptography
+redis
+psutil
+flask
+flask-socketio
