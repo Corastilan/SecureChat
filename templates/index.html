@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Secure Messaging App</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+      body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+      #chat { height: 420px; border: 1px solid #999; background: white; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+      .system { color: #444; font-weight: bold; }
+      .p2p { color: #2c3e50; border-left: 3px solid #3498db; padding-left: 5px; margin: 4px 0; }
+      .group { color: #2c3e50; border-left: 3px solid #8e44ad; padding-left: 5px; margin: 4px 0; }
+      .error { color: red; font-weight: bold; }
+      input { padding: 6px; }
+      button { padding: 6px 10px; cursor: pointer; }
+      section { background: #fff; padding: 12px; border: 1px solid #ddd; margin-bottom: 10px; }
+      h3 { margin-top: 0; }
+    </style>
+  </head>
+  <body>
+    <h2>Secure Messaging</h2>
+
+    <div id="auth">
+      <input id="user" placeholder="Username" />
+      <input id="password" type="password" placeholder="Password" />
+      <button onclick="login()">Login / Register</button>
+    </div>
+
+    <div id="main" style="display:none">
+      <h3 id="display_user"></h3>
+      <div id="chat"></div>
+
+      <section>
+        <h3>P2P</h3>
+        <input id="peer" placeholder="Peer username" />
+        <button onclick="connectPeer()">Connect</button><br /><br />
+        <input id="p2pMsg" placeholder="Message" style="width: 420px;" />
+        <button onclick="sendP2P()">Send</button>
+      </section>
+
+      <section>
+        <h3>Groups</h3>
+        <div style="margin-bottom: 10px;">
+          <input id="groupId" placeholder="Group ID" />
+          <input id="groupMembers" placeholder="Members (comma separated, optional)" />
+          <button onclick="createGroup()">Create</button>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          <input id="groupMemberAdd" placeholder="Add member username" />
+          <button onclick="addMember()">Add member + rotate</button>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          <input id="groupMemberRemove" placeholder="Remove member username" />
+          <button onclick="removeMember()">Remove member + rotate</button>
+        </div>
+
+        <input id="groupMsg" placeholder="Group message" style="width: 420px;" />
+        <button onclick="sendGroup()">Send</button>
+      </section>
+    </div>
+
+    <script>
+      let socket = null;
+      try {
+        socket = io({ transports: ["websocket", "polling"] });
+      } catch (e) {
+        console.error(e);
+      }
+      let curUser = "";
+
+      function append(type, msg) {
+        const div = document.createElement("div");
+        div.className = type;
+        div.innerText = msg;
+        document.getElementById("chat").appendChild(div);
+        const chat = document.getElementById("chat");
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function login() {
+        curUser = document.getElementById("user").value.trim();
+        const pwd = document.getElementById("password").value.trim();
+        if (!curUser || !pwd) return alert("Username and Password required");
+        socket.emit("login", { username: curUser, password: pwd });
+      }
+
+      function connectPeer() {
+        socket.emit("connect_peer", {
+          username: curUser,
+          peer: document.getElementById("peer").value
+        });
+      }
+
+      function sendP2P() {
+        socket.emit("send_p2p", {
+          username: curUser,
+          peer: document.getElementById("peer").value,
+          message: document.getElementById("p2pMsg").value
+        });
+        document.getElementById("p2pMsg").value = "";
+      }
+
+      function parseMembers() {
+        const raw = document.getElementById("groupMembers").value || "";
+        if (!raw.trim()) return [];
+        return raw.split(",").map(s => s.trim()).filter(Boolean);
+      }
+
+      function createGroup() {
+        socket.emit("create_group", {
+          username: curUser,
+          group_id: document.getElementById("groupId").value,
+          members: parseMembers()
+        });
+      }
+
+      function addMember() {
+        socket.emit("add_group_member", {
+          username: curUser,
+          group_id: document.getElementById("groupId").value,
+          member: document.getElementById("groupMemberAdd").value
+        });
+      }
+
+      function removeMember() {
+        socket.emit("remove_group_member", {
+          username: curUser,
+          group_id: document.getElementById("groupId").value,
+          member: document.getElementById("groupMemberRemove").value
+        });
+      }
+
+      function sendGroup() {
+        socket.emit("send_group", {
+          username: curUser,
+          group_id: document.getElementById("groupId").value,
+          message: document.getElementById("groupMsg").value
+        });
+        document.getElementById("groupMsg").value = "";
+      }
+
+      if (socket) {
+        socket.on("logged_in", (data) => {
+          document.getElementById("auth").style.display = "none";
+          document.getElementById("main").style.display = "block";
+          document.getElementById("display_user").innerText = "User: " + data.user;
+          append("system", "Logged in as " + data.user);
+        });
+
+        socket.on("system", (data) => append("system", data.message));
+        socket.on("error", (data) => append("error", data.message));
+
+        socket.on("p2p_payload", (data) => {
+          socket.emit("decrypt_p2p", {
+            username: curUser,
+            from: data.from,
+            count: data.count,
+            nonce_hex: data.nonce_hex,
+            ciphertext_hex: data.ciphertext_hex
+          });
+        });
+
+        socket.on("p2p_message", (data) => {
+          append("p2p", "[P2P] " + data.from + ": " + data.message);
+        });
+
+        socket.on("p2p_history", (data) => {
+          const msgs = data.messages || [];
+          append("system", "P2P history loaded (" + msgs.length + " msg)");
+          msgs.forEach((m) => {
+            socket.emit("decrypt_p2p", {
+              username: curUser,
+              from: m.from,
+              count: m.count,
+              nonce_hex: m.nonce_hex,
+              ciphertext_hex: m.ciphertext_hex
+            });
+          });
+        });
+
+        socket.on("group_payload", (data) => {
+          socket.emit("decrypt_group", {
+            username: curUser,
+            group_id: data.group_id,
+            from: data.from,
+            msg_id: data.msg_id,
+            epoch: data.epoch,
+            nonce_hex: data.nonce_hex,
+            ciphertext_hex: data.ciphertext_hex
+          });
+        });
+
+        socket.on("group_message", (data) => {
+          append("group", "[Group " + data.group_id + "] " + data.from + ": " + data.message);
+        });
+
+        socket.on("group_history", (data) => {
+          append("system", "History for group " + data.group_id + " (" + data.messages.length + " msg)");
+          data.messages.forEach(m => {
+            socket.emit("decrypt_group", {
+              username: curUser,
+              group_id: data.group_id,
+              from: m.from,
+              msg_id: m.msg_id,
+              epoch: m.epoch,
+              nonce_hex: m.nonce_hex,
+              ciphertext_hex: m.ciphertext_hex
+            });
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
