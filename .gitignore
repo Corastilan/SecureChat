@@ -2,8 +2,12 @@
 .venv/
 venv/
 env/
+encryption/
 
 # Python cache
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Other
+*.DS_STORE

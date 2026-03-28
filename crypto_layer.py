@@ -1,12 +1,12 @@
 import os
 import time
 import uuid
-from typing import Dict, Any
+from typing import Any, Dict
 
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.asymmetric import dh
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import dh
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 
 class SecureStreamLayer:
@@ -22,7 +22,9 @@ class SecureStreamLayer:
 
     PROTOCOL_VERSION = 1
 
-    def __init__(self, key: bytes, local_sender_id: str, expected_stream_id: str | None = None):
+    def __init__(
+        self, key: bytes, local_sender_id: str, expected_stream_id: str | None = None
+    ):
         self.aesgcm = AESGCM(key)
         self.local_sender_id = local_sender_id
         self.expected_stream_id = expected_stream_id
@@ -57,7 +59,9 @@ class SecureStreamLayer:
         )
         return ad.encode("utf-8")
 
-    def encrypt(self, plaintext: str, counter: int, *, stream_id: str) -> Dict[str, Any]:
+    def encrypt(
+        self, plaintext: str, counter: int, *, stream_id: str
+    ) -> Dict[str, Any]:
         if counter < 0:
             raise ValueError("Counter must be non-negative.")
 
@@ -84,7 +88,9 @@ class SecureStreamLayer:
             timestamp=packet["timestamp"],
         )
 
-        ciphertext = self.aesgcm.encrypt(nonce, plaintext.encode("utf-8"), associated_data)
+        ciphertext = self.aesgcm.encrypt(
+            nonce, plaintext.encode("utf-8"), associated_data
+        )
         packet["ciphertext"] = ciphertext.hex()
         return packet
 
@@ -118,7 +124,10 @@ class SecureStreamLayer:
         if packet["counter"] < 0:
             raise ValueError("Malformed packet: counter must be non-negative.")
 
-        if self.expected_stream_id is not None and packet["stream_id"] != self.expected_stream_id:
+        if (
+            self.expected_stream_id is not None
+            and packet["stream_id"] != self.expected_stream_id
+        ):
             raise ValueError(
                 f"Unexpected stream_id '{packet['stream_id']}'. Expected '{self.expected_stream_id}'."
             )
@@ -141,7 +150,9 @@ class SecureStreamLayer:
         message_id = packet["message_id"]
 
         if message_id in self.seen_message_ids:
-            raise Exception(f"REPLAY ATTACK: Message ID {message_id} was already accepted.")
+            raise Exception(
+                f"REPLAY ATTACK: Message ID {message_id} was already accepted."
+            )
 
         last_counter = self.last_received_counter_by_sender.get(sender_id, -1)
         if counter <= last_counter:
@@ -198,6 +209,6 @@ class KeyExchange:
         return HKDF(
             algorithm=hashes.SHA256(),
             length=32,
-            salt=b"nyu-salt", # Fixed salt for session sync
+            salt=b"nyu-salt",  # Fixed salt for session sync
             info=b"nyu-vapt-stream-project",
         ).derive(public_key_bytes)
