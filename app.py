@@ -1,15 +1,11 @@
-import eventlet
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
 
 from state import ServerState
 
-eventlet.monkey_patch()
-
-
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev"
-socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
+socketio = SocketIO(app, async_mode="threading", cors_allowed_origins="*")
 
 state = ServerState()
 
