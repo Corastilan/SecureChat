@@ -1,11 +1,10 @@
 import eventlet
-
-eventlet.monkey_patch()
-
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
 
 from state import ServerState
+
+eventlet.monkey_patch()
 
 
 app = Flask(__name__)
@@ -111,7 +110,7 @@ def on_decrypt_p2p(data):
             sender=sender,
             count=count,
             nonce_hex=nonce_hex,
-            ciphertext_hex=ciphertext_hex
+            ciphertext_hex=ciphertext_hex,
         )
         emit("p2p_message", {"from": sender, "message": plaintext})
     except Exception as e:
@@ -142,12 +141,19 @@ def on_add_group_member(data):
 
     try:
         state.add_member(group_id=group_id, actor=actor, new_member=new_member)
-        emit("system", {"message": f"Added {new_member} to {group_id} and rotated group key."})
+        emit(
+            "system",
+            {"message": f"Added {new_member} to {group_id} and rotated group key."},
+        )
 
         connected = state.users.get(new_member)
         if connected:
             hist = state.groups[group_id].history_encrypted()
-            socketio.emit("group_history", {"group_id": group_id, "messages": hist}, room=connected.sid)
+            socketio.emit(
+                "group_history",
+                {"group_id": group_id, "messages": hist},
+                room=connected.sid,
+            )
     except Exception as e:
         emit("error", {"message": str(e)})
 
@@ -162,7 +168,10 @@ def on_remove_group_member(data):
 
     try:
         state.remove_member(group_id=group_id, actor=actor, member=member)
-        emit("system", {"message": f"Removed {member} from {group_id} and rotated group key."})
+        emit(
+            "system",
+            {"message": f"Removed {member} from {group_id} and rotated group key."},
+        )
     except Exception as e:
         emit("error", {"message": str(e)})
 
@@ -176,7 +185,9 @@ def on_send_group(data):
         return emit("error", {"message": "group_id and username required."})
 
     try:
-        payload = state.send_group_message(group_id=group_id, sender=sender, plaintext=msg)
+        payload = state.send_group_message(
+            group_id=group_id, sender=sender, plaintext=msg
+        )
         for member in payload["members"]:
             sess = state.users.get(member)
             if sess:
@@ -217,9 +228,12 @@ def on_decrypt_group(data):
             msg_id=msg_id,
             epoch=epoch,
             nonce_hex=nonce_hex,
-            ciphertext_hex=ciphertext_hex
+            ciphertext_hex=ciphertext_hex,
         )
-        emit("group_message", {"group_id": group_id, "from": sender, "message": plaintext})
+        emit(
+            "group_message",
+            {"group_id": group_id, "from": sender, "message": plaintext},
+        )
     except Exception as e:
         emit("error", {"message": str(e)})
 

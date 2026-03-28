@@ -1,9 +1,9 @@
 import threading
-from typing import Dict, List, Set, Optional
+from typing import Dict, List
 
-from user import User
 from group import Group
 from key_management import KeyManager
+from user import User
 from utils import PasswordHasher
 
 """ Crux of the implementation.
@@ -16,6 +16,7 @@ from utils import PasswordHasher
 7. create_group, add, remove member, send group message and decrypt group payload are the respective group functions
 """
 
+
 class ServerState:
     def __init__(self):
         self.lock = threading.Lock()
@@ -27,7 +28,9 @@ class ServerState:
     def login_user(self, username: str, password: str, sid: str) -> dict:
         with self.lock:
             if username in self.passwords:
-                if not PasswordHasher.verify_password(self.passwords[username], password):
+                if not PasswordHasher.verify_password(
+                    self.passwords[username], password
+                ):
                     raise ValueError("Invalid username or password.")
                 self.users[username].sid = sid
                 is_new = False
@@ -35,7 +38,7 @@ class ServerState:
                 self.passwords[username] = PasswordHasher.hash_password(password)
                 self.users[username] = User.create(username=username, sid=sid)
                 is_new = True
-            
+
             return {"user": self.users[username], "is_new": is_new}
 
     def list_groups_for_user(self, username: str) -> List[str]:
@@ -57,9 +60,11 @@ class ServerState:
                 raise ValueError("Both users must be connected first.")
             us = self.users[sender]
             up = self.users[peer]
-            
-            count, nonce, ct = us.encrypt_for_peer(peer_username=peer, plaintext=plaintext)
-            
+
+            count, nonce, ct = us.encrypt_for_peer(
+                peer_username=peer, plaintext=plaintext
+            )
+
             encrypted_payload = {
                 "from": sender,
                 "to": peer,
@@ -67,20 +72,29 @@ class ServerState:
                 "nonce_hex": nonce.hex(),
                 "ciphertext_hex": ct.hex(),
             }
-            
+
             self.p2p_history.setdefault(sender, []).append(encrypted_payload)
             self.p2p_history.setdefault(peer, []).append(encrypted_payload)
-            
-            return {
-                "to_sid": up.sid,
-                **encrypted_payload
-            }
 
-    def decrypt_p2p_payload(self, receiver: str, sender: str, count: int, nonce_hex: str, ciphertext_hex: str) -> str:
+            return {"to_sid": up.sid, **encrypted_payload}
+
+    def decrypt_p2p_payload(
+        self,
+        receiver: str,
+        sender: str,
+        count: int,
+        nonce_hex: str,
+        ciphertext_hex: str,
+    ) -> str:
         with self.lock:
             if receiver not in self.users:
                 raise ValueError("Receiver not connected.")
-            return self.users[receiver].decrypt_from_peer(peer_username=sender, count=count, nonce=bytes.fromhex(nonce_hex), ciphertext=bytes.fromhex(ciphertext_hex))
+            return self.users[receiver].decrypt_from_peer(
+                peer_username=sender,
+                count=count,
+                nonce=bytes.fromhex(nonce_hex),
+                ciphertext=bytes.fromhex(ciphertext_hex),
+            )
 
     def get_p2p_history(self, username: str) -> List[dict]:
         with self.lock:
@@ -113,7 +127,7 @@ class ServerState:
         with self.lock:
             g = self._require_group(group_id)
             m = g.encrypt_and_store(sender, plaintext)
-            
+
             return {
                 "group_id": group_id,
                 "from": m.sender,
@@ -121,12 +135,27 @@ class ServerState:
                 "epoch": g.epoch,
                 "nonce_hex": m.nonce.hex(),
                 "ciphertext_hex": m.ciphertext.hex(),
-                "members": list(g.members)
+                "members": list(g.members),
             }
 
-    def decrypt_group_payload(self, receiver: str, group_id: str, sender: str, msg_id: int, epoch: int, nonce_hex: str, ciphertext_hex: str) -> str:
+    def decrypt_group_payload(
+        self,
+        receiver: str,
+        group_id: str,
+        sender: str,
+        msg_id: int,
+        epoch: int,
+        nonce_hex: str,
+        ciphertext_hex: str,
+    ) -> str:
         with self.lock:
             g = self._require_group(group_id)
             if receiver not in g.members:
                 raise ValueError("Not a member of this group.")
-            return g.decrypt_payload(sender=sender, msg_id=msg_id, epoch=epoch, nonce=bytes.fromhex(nonce_hex), ciphertext=bytes.fromhex(ciphertext_hex))
+            return g.decrypt_payload(
+                sender=sender,
+                msg_id=msg_id,
+                epoch=epoch,
+                nonce=bytes.fromhex(nonce_hex),
+                ciphertext=bytes.fromhex(ciphertext_hex),
+            )
