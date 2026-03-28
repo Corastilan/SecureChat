@@ -32,7 +32,6 @@ def on_login(data):
     print(f"[socket] login attempt username={username} sid={sid}")
     try:
         result = state.login_user(username, password, sid)
-        user = result["user"]
         is_new = result["is_new"]
         print(f"[socket] login successful: {username} (new={is_new})")
     except Exception as e:
