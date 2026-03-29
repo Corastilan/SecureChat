@@ -1,6 +1,6 @@
 # Encrypted Systems: SecureChat & E2E Data Stream
 
-Project of a secure chat messaing application built around end-to-end security. It has a real time messaging platform, and an End-to-End encrypted secure data stream using Redis as an untrusted intermediary. Both share the foundation of AES-GCM with a 256 bit key. HKDF-SHA256, and authenticated metadata binding while targeting different threat models.
+Project of a secure chat messagin application built around end-to-end security. It has a real time messaging platform, and an End-to-End encrypted secure data stream using Redis as an untrusted intermediary. Both share the foundation of AES-GCM with a 256 bit key. HKDF-SHA256, and authenticated metadata binding while targeting different threat models.
 ---
 
 ## Security Architecture
