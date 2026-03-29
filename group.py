@@ -1,5 +1,6 @@
-from dataclasses import dataclass, field
-from typing import List, Set, Dict
+from dataclasses import dataclass
+from typing import List, Set
+
 from utils import Utils
 
 """
@@ -19,6 +20,7 @@ class EncryptedGroupMessage:
     nonce: bytes
     ciphertext: bytes
 
+
 class Group:
     def __init__(self, group_id: str, members: Set[str]):
         self.group_id = group_id
@@ -26,7 +28,7 @@ class Group:
         self.master_seed = Utils.random_key_32()
         self.epoch = 0
         self.aes_key = self._derive_current_key()
-        
+
         self.next_msg_id = 1
         self.messages: List[EncryptedGroupMessage] = []
 
@@ -34,7 +36,11 @@ class Group:
         return Utils.derive_group_epoch_key(self.master_seed, self.group_id, self.epoch)
 
     def _aad_for(self, sender: str, msg_id: int, epoch: int) -> bytes:
-        return f"group:{self.group_id}:sender:{sender}:msg:{msg_id}:epoch:{epoch}".encode("utf-8")
+        return (
+            f"group:{self.group_id}:sender:{sender}:msg:{msg_id}:epoch:{epoch}".encode(
+                "utf-8"
+            )
+        )
 
     def add_member(self, actor: str, new_member: str):
         if actor not in self.members:
@@ -55,14 +61,14 @@ class Group:
     def rotate_epoch(self):
         old_key = self.aes_key
         old_epoch = self.epoch
-        
+
         self.epoch += 1
         self.aes_key = self._derive_current_key()
 
         for m in self.messages:
             old_aad = self._aad_for(m.sender, m.msg_id, old_epoch)
             new_aad = self._aad_for(m.sender, m.msg_id, self.epoch)
-            
+
             pt = Utils.decrypt_aes_gcm(old_key, m.nonce, m.ciphertext, old_aad)
             new_nonce, new_ct = Utils.encrypt_aes_gcm(self.aes_key, pt, new_aad)
             m.nonce = new_nonce
@@ -75,23 +81,30 @@ class Group:
         self.next_msg_id += 1
         aad = self._aad_for(sender, msg_id, self.epoch)
         nonce, ct = Utils.encrypt_aes_gcm(self.aes_key, plaintext, aad)
-        m = EncryptedGroupMessage(msg_id=msg_id, sender=sender, nonce=nonce, ciphertext=ct)
+        m = EncryptedGroupMessage(
+            msg_id=msg_id, sender=sender, nonce=nonce, ciphertext=ct
+        )
         self.messages.append(m)
         return m
 
-    def decrypt_payload(self, sender: str, msg_id: int, nonce: bytes, ciphertext: bytes, epoch: int) -> str:
+    def decrypt_payload(
+        self, sender: str, msg_id: int, nonce: bytes, ciphertext: bytes, epoch: int
+    ) -> str:
         aad = self._aad_for(sender, msg_id, epoch)
-        key_for_epoch = Utils.derive_group_epoch_key(self.master_seed, self.group_id, epoch)
+        key_for_epoch = Utils.derive_group_epoch_key(
+            self.master_seed, self.group_id, epoch
+        )
         return Utils.decrypt_aes_gcm(key_for_epoch, nonce, ciphertext, aad)
 
     def history_encrypted(self) -> List[dict]:
         return [
             {
                 "group_id": self.group_id,
-                "msg_id": m.msg_id, 
-                "from": m.sender, 
+                "msg_id": m.msg_id,
+                "from": m.sender,
                 "epoch": self.epoch,
-                "nonce_hex": m.nonce.hex(), 
+                "nonce_hex": m.nonce.hex(),
+                "ciphertext_hex": m.ciphertext.hex(),
                 "ciphertext_hex": m.ciphertext.hex()
             }
             for m in self.messages
