@@ -1,6 +1,6 @@
 # Encrypted Systems: SecureChat & E2E Data Stream
 
-Project of a secure chat messagin application built around end-to-end security. It has a real time messaging platform, and an End-to-End encrypted secure data stream using Redis as an untrusted intermediary. Both share the foundation of AES-GCM with a 256 bit key. HKDF-SHA256, and authenticated metadata binding while targeting different threat models.
+Project of a secure chat messaging application built around end-to-end security. It has a real time messaging platform, and an End-to-End encrypted secure data stream using Redis as an untrusted intermediary. it shares the foundation of AES-GCM with a 256 bit key. HKDF-SHA256, and authenticated metadata binding while targeting different threat models.
 ---
 
 ## Security Architecture
@@ -54,14 +54,14 @@ The following fields are authenticated as GCM associated data: `version`, `sende
 
 | Primitive | Usage |
 |---|---|
-| AES-256-GCM | Encryption and integrity (both projects) |
+| AES-256-GCM | Encryption and integrity  |
 | X25519 (Curve25519) | P2P key exchange (SecureChat) |
-| HKDF-SHA256 | Key derivation (both projects) |
+| HKDF-SHA256 | Key derivation In both chat and data stream |
 | Scrypt + AES | Password hashing with envelope encryption (SecureChat) |
 | GCM AAD | Context binding — sender, receiver, counter, packet metadata |
 | Monotonic counters + `message_id` | Replay protection (Data Stream) |
 
-Both projects enforce a **zero-plaintext storage policy**: the server stores only encrypted blobs; plaintext exists only in memory at the client.
+The chat and data stream enforce a **zero-plaintext storage policy**: the server stores only encrypted blobs; plaintext exists only in memory at the client.
 
 ---
 
