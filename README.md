@@ -1,11 +1,6 @@
 # Encrypted Systems: SecureChat & E2E Data Stream
 
-Will be updated soon, stuff here for now.
-
-## Overview
-
-This repository contains two complementary projects built around end-to-end encryption and layered security design: **SecureChat**, a real-time encrypted messaging platform, and **E2E Secure Data Stream**, an encrypted pipeline using Redis as an untrusted intermediary. Both share a common cryptographic foundation. AES-256-GCM, HKDF-SHA256, and authenticated metadata binding while targeting different threat models.
-
+Project of a secure chat messaing application built around end-to-end security. It has a real time messaging platform, and an End-to-End encrypted secure data stream using Redis as an untrusted intermediary. Both share the foundation of AES-GCM with a 256 bit key. HKDF-SHA256, and authenticated metadata binding while targeting different threat models.
 ---
 
 ## Security Architecture
