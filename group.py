@@ -13,6 +13,7 @@ from utils import Utils
 7. history_encrypted: List of encrypted messages in the group
 """
 
+
 @dataclass
 class EncryptedGroupMessage:
     msg_id: int
@@ -105,7 +106,6 @@ class Group:
                 "epoch": self.epoch,
                 "nonce_hex": m.nonce.hex(),
                 "ciphertext_hex": m.ciphertext.hex(),
-                "ciphertext_hex": m.ciphertext.hex()
             }
             for m in self.messages
         ]
