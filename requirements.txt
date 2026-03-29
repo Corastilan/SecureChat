@@ -1,6 +1,5 @@
 flask
 flask-socketio
 cryptography
-cryptography
 redis
 psutil
